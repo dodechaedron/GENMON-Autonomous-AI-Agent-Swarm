@@ -227,6 +227,69 @@ export class MarketDataService {
   }
 
   /**
+   * Get top trending pairs from DexScreener by searching popular terms
+   * DexScreener doesn't have a direct "trending" endpoint, so we search for high-volume pairs
+   */
+  async getDexTrending(): Promise<DexPair[]> {
+    const cacheKey = "dex_trending";
+    const cached = getCached<DexPair[]>(cacheKey);
+    if (cached) return cached;
+
+    try {
+      // Search for high-activity pairs across chains
+      const queries = ["WETH", "SOL", "MON", "USDC", "PEPE"];
+      const allPairs: DexPair[] = [];
+
+      for (const q of queries) {
+        try {
+          const res = await fetch(`${DEX_BASE}/latest/dex/search?q=${q}`, {
+            signal: AbortSignal.timeout(5000),
+          });
+          if (!res.ok) continue;
+          const data = await res.json();
+          const pairs = (data.pairs || []).slice(0, 5).map((p: Record<string, unknown>) => {
+            const base = (p.baseToken as Record<string, string>) || {};
+            const quote = (p.quoteToken as Record<string, string>) || {};
+            return {
+              chainId: (p.chainId as string) || "",
+              dexId: (p.dexId as string) || "",
+              pairAddress: (p.pairAddress as string) || "",
+              baseToken: { address: base.address || "", name: base.name || "", symbol: base.symbol || "" },
+              quoteToken: { address: quote.address || "", name: quote.name || "", symbol: quote.symbol || "" },
+              priceUsd: (p.priceUsd as string) || "0",
+              priceChange24h: ((p.priceChange as Record<string, number>)?.h24) ?? 0,
+              volume24h: ((p.volume as Record<string, number>)?.h24) ?? 0,
+              liquidity: ((p.liquidity as Record<string, number>)?.usd) ?? 0,
+              fdv: (p.fdv as number) ?? null,
+              pairCreatedAt: (p.pairCreatedAt as number) ?? null,
+              url: (p.url as string) || "",
+              source: "dexscreener" as const,
+            };
+          });
+          allPairs.push(...pairs);
+        } catch { /* skip individual query */ }
+      }
+
+      // Sort by volume and deduplicate by base token symbol
+      const seen = new Set<string>();
+      const unique = allPairs
+        .sort((a, b) => b.volume24h - a.volume24h)
+        .filter((p) => {
+          const key = `${p.baseToken.symbol}-${p.chainId}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        })
+        .slice(0, 15);
+
+      setCache(cacheKey, unique, 90_000); // 1.5 min cache
+      return unique;
+    } catch {
+      return [];
+    }
+  }
+
+  /**
    * Get boosted tokens from DexScreener (tokens with paid promotions = high activity)
    */
   async getBoostedTokens(): Promise<BoostedToken[]> {
@@ -462,22 +525,24 @@ export class MarketDataService {
    * CoinGecko trending + DexScreener boosted + CryptoCompare news + CoinGecko categories + new DEX pairs
    */
   async getMarketSentiment(count: number = 5): Promise<MarketSentiment[]> {
-    const [trending, boosted, gainers, news, categories, newPairs, onChainSentiment] = await Promise.all([
+    const [trending, boosted, gainers, news, categories, newPairs, dexTrending, onChainSentiment] = await Promise.all([
       this.getTrendingCoins().catch(() => []),
       this.getBoostedTokens().catch(() => []),
       this.getTopGainers(15).catch(() => []),
       this.getCryptoNews(20).catch(() => []),
       this.getTrendingCategories(8).catch(() => []),
       this.getNewDexPairs("monad").catch(() => []),
+      this.getDexTrending().catch(() => []),
       this.onChain.getOnChainSentiment().catch(() => null),
     ]);
 
     const sentiments: MarketSentiment[] = [];
     const seenTopics = new Set<string>();
 
-    // Distribute slots: trending gets ~40%, rest shared among other sources
-    const trendingSlots = Math.max(2, Math.ceil(count * 0.35));
-    const gainerSlots = Math.max(2, Math.ceil(count * 0.25));
+    // Distribute slots across sources for variety
+    const trendingSlots = Math.max(2, Math.ceil(count * 0.25));
+    const gainerSlots = Math.max(2, Math.ceil(count * 0.2));
+    const dexSlots = Math.max(2, Math.ceil(count * 0.2));
 
     // 1. From CoinGecko trending
     for (const coin of trending.slice(0, trendingSlots)) {
@@ -520,7 +585,26 @@ export class MarketDataService {
       });
     }
 
-    // 3. From CryptoCompare news — extract hot narratives
+    // 3. From DexScreener trending (top volume pairs)
+    for (const pair of dexTrending.slice(0, dexSlots)) {
+      const sym = pair.baseToken.symbol.toLowerCase();
+      if (!sym || seenTopics.has(sym)) continue;
+      seenTopics.add(sym);
+      const volScore = pair.volume24h > 1_000_000 ? 30 : pair.volume24h > 100_000 ? 20 : 10;
+      const changeScore = Math.min(20, Math.max(-10, pair.priceChange24h));
+      const score = Math.max(10, Math.min(100, 40 + volScore + changeScore));
+      sentiments.push({
+        topic: `${pair.baseToken.name || pair.baseToken.symbol} (${pair.baseToken.symbol})`,
+        score: Math.round(score),
+        volume: Math.round(pair.volume24h),
+        trending: pair.volume24h > 500_000,
+        keywords: [sym, pair.chainId, pair.dexId, "dexscreener", "volume"],
+        source: "dexscreener",
+        data: { dexPairs: [pair], priceChange: pair.priceChange24h },
+      });
+    }
+
+    // 4. From CryptoCompare news — extract hot narratives
     if (news.length > 0) {
       const newsKeywords = this.extractNewsKeywords(news);
       for (const kw of newsKeywords.slice(0, 3)) {
@@ -537,7 +621,7 @@ export class MarketDataService {
       }
     }
 
-    // 4. From CoinGecko categories — sector momentum
+    // 5. From CoinGecko categories — sector momentum
     for (const cat of categories.slice(0, 2)) {
       const catKey = cat.name.toLowerCase();
       if (seenTopics.has(catKey)) continue;
@@ -555,7 +639,7 @@ export class MarketDataService {
       });
     }
 
-    // 5. From DexScreener boosted tokens
+    // 6. From DexScreener boosted tokens
     for (const token of boosted.slice(0, 2)) {
       const score = Math.min(100, 50 + token.totalAmount * 2);
       sentiments.push({
@@ -569,7 +653,7 @@ export class MarketDataService {
       });
     }
 
-    // 6. From new Monad DEX pairs (early signals)
+    // 7. From new Monad DEX pairs (early signals)
     for (const pair of newPairs.slice(0, 2)) {
       const sym = pair.baseToken.symbol.toLowerCase();
       if (!sym || seenTopics.has(sym)) continue;
@@ -588,7 +672,7 @@ export class MarketDataService {
       });
     }
 
-    // 7. From Monad on-chain activity (RPC direct)
+    // 8. From Monad on-chain activity (RPC direct)
     if (onChainSentiment && onChainSentiment.score > 20) {
       sentiments.push({
         topic: onChainSentiment.topic,

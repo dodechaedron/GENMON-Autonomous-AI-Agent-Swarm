@@ -62,11 +62,15 @@ export async function GET(req: NextRequest) {
       }
       case "categories": {
         const data = await marketData.getTrendingCategories(Math.min(count, 15)).catch(() => []);
-        return NextResponse.json({ data, source: "server" });
+        return NextResponse.json({ data, source: "server", timestamp: Date.now() });
       }
       case "boosted": {
         const data = await marketData.getBoostedTokens().catch(() => []);
-        return NextResponse.json({ data, source: "server" });
+        return NextResponse.json({ data, source: "server", timestamp: Date.now() });
+      }
+      case "dextrending": {
+        const data = await marketData.getDexTrending().catch(() => []);
+        return NextResponse.json({ data, source: "server", timestamp: Date.now() });
       }
       case "pairs": {
         const chainId = req.nextUrl.searchParams.get("chainId") || "monad";
