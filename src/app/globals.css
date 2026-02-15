@@ -16,7 +16,6 @@ body {
   background: var(--space);
   color: white;
   font-family: 'Space Grotesk', sans-serif;
-  overflow: hidden;
 }
 
 /* Glow effects */
