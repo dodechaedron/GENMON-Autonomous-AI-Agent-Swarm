@@ -165,7 +165,7 @@ export default function Home() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-space/80 backdrop-blur-sm">
           <div className="text-center">
             <div className="w-10 h-10 border-2 border-cyan/30 border-t-cyan rounded-full animate-spin mx-auto mb-3" />
-            <p className="text-cyan text-sm">Loading GENMON...</p>
+            <p className="text-cyan text-sm">Loading...</p>
           </div>
         </div>
       )}

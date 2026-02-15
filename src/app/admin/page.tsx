@@ -102,7 +102,7 @@ export default function AdminPage() {
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <div className="w-8 h-8 border-2 border-cyan/30 border-t-cyan rounded-full animate-spin mx-auto mb-3" />
-            <p className="text-cyan text-sm">Loading GENMON...</p>
+            <p className="text-cyan text-sm">Loading...</p>
           </div>
         </div>
       ) : stats ? (
