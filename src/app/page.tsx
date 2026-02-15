@@ -95,6 +95,18 @@ export default function Home() {
 
       {/* Mobile/Tablet Layout */}
       <div className="flex-1 flex flex-col lg:hidden overflow-hidden">
+        {/* Mobile quick links (Docs/Admin) */}
+        <div className="flex items-center gap-2 px-3 py-1.5 border-b border-white/5 sm:hidden">
+          <Link href="/docs" className="px-2.5 py-1 rounded-md border border-white/10 text-gray-400 text-[10px] hover:text-white transition-all">
+            📖 Docs
+          </Link>
+          <Link href="/admin" className="px-2.5 py-1 rounded-md border border-white/10 text-gray-400 text-[10px] hover:text-white transition-all">
+            ⚙️ Admin
+          </Link>
+          {supabaseReady && (
+            <span className="ml-auto px-1.5 py-0.5 rounded-full bg-green-500/10 border border-green-500/20 text-green-400 text-[8px]">● DB</span>
+          )}
+        </div>
         {/* Content area */}
         <div className="flex-1 relative overflow-hidden">
           {mobileTab === "swarm" && (

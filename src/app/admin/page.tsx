@@ -82,29 +82,29 @@ export default function AdminPage() {
     <ErrorBoundary>
     <main className="min-h-screen bg-space text-white">
       {/* Header */}
-      <header className="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-white/5 bg-space/90 backdrop-blur-xl">
-        <div className="flex items-center gap-3">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full overflow-hidden ring-1 ring-cyan/30">
+      <header className="flex items-center justify-between px-3 sm:px-6 py-3 border-b border-white/5 bg-space/90 backdrop-blur-xl">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+          <Link href="/" className="flex items-center gap-2 shrink-0">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full overflow-hidden ring-1 ring-cyan/30">
               <img src="/logo.png" alt="GENMON" width={32} height={32} className="w-full h-full object-cover" />
             </div>
             <span className="text-sm font-bold">
               <span className="text-cyan">GEN</span><span className="text-purple">MON</span>
             </span>
           </Link>
-          <span className="text-gray-600 text-sm">/ Admin Dashboard</span>
+          <span className="text-gray-600 text-xs sm:text-sm hidden sm:inline">/ Admin</span>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-3">
           {lastRefresh && (
-            <span className="text-[10px] text-gray-600">
-              Updated {lastRefresh.toLocaleTimeString()}
+            <span className="text-[9px] sm:text-[10px] text-gray-600 hidden sm:inline">
+              {lastRefresh.toLocaleTimeString()}
             </span>
           )}
           <button onClick={refresh} disabled={loading}
-            className="px-3 py-1.5 rounded-lg border border-cyan/30 text-cyan text-xs hover:bg-cyan/10 disabled:opacity-50 transition-all">
-            {loading ? "⟳" : "↻"} Refresh
+            className="px-2 sm:px-3 py-1.5 rounded-lg border border-cyan/30 text-cyan text-[10px] sm:text-xs hover:bg-cyan/10 disabled:opacity-50 transition-all">
+            ↻
           </button>
-          <Link href="/" className="px-3 py-1.5 rounded-lg border border-white/10 text-gray-400 text-xs hover:text-white transition-all">
+          <Link href="/" className="px-2 sm:px-3 py-1.5 rounded-lg border border-white/10 text-gray-400 text-[10px] sm:text-xs hover:text-white transition-all">
             ← Back
           </Link>
         </div>
@@ -140,43 +140,47 @@ export default function AdminPage() {
               ) : (
                 <div className="space-y-2">
                   {stats.topAgents.map((agent, i) => (
-                    <div key={agent.id} className="flex items-center gap-3 bg-white/[0.02] rounded-lg p-2.5">
-                      <span className="text-lg w-7 text-center">
-                        {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `#${i + 1}`}
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium truncate" style={{ color: agent.color }}>
+                    <div key={agent.id} className="bg-white/[0.02] rounded-lg p-2.5">
+                      {/* Row 1: Rank + Name + PnL */}
+                      <div className="flex items-center gap-2">
+                        <span className="text-base sm:text-lg w-6 sm:w-7 text-center shrink-0">
+                          {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `#${i + 1}`}
+                        </span>
+                        <div className="flex-1 min-w-0 flex items-center gap-1.5 flex-wrap">
+                          <span className="text-sm font-medium truncate max-w-[120px] sm:max-w-none" style={{ color: agent.color }}>
                             {agent.name}
                           </span>
-                          <span className="text-[10px] text-gray-500 bg-white/5 px-1.5 py-0.5 rounded">
+                          <span className="text-[9px] sm:text-[10px] text-gray-500 bg-white/5 px-1 sm:px-1.5 py-0.5 rounded">
                             {agent.type}
                           </span>
-                          <span className="text-[10px] text-gray-600">Gen {agent.generation}</span>
-                          {!agent.alive && <span className="text-[10px] text-red-400">☠️ Dead</span>}
+                          <span className="text-[9px] sm:text-[10px] text-gray-600 hidden sm:inline">Gen {agent.generation}</span>
+                          {!agent.alive && <span className="text-[9px] sm:text-[10px] text-red-400">☠️</span>}
                         </div>
-                        <div className="flex gap-3 text-[10px] text-gray-500 mt-0.5">
-                          <span>W: {agent.successCount ?? 0}</span>
-                          <span>L: {agent.failCount ?? 0}</span>
-                          <span>Launches: {agent.launchCount ?? 0}</span>
-                        </div>
+                        <span className={`text-xs sm:text-sm font-mono font-bold shrink-0 ${(agent.totalPnL ?? 0) >= 0 ? "text-green-400" : "text-red-400"}`}>
+                          {(agent.totalPnL ?? 0) >= 0 ? "+" : ""}{(agent.totalPnL ?? 0).toFixed(1)}%
+                        </span>
                       </div>
-                      <span className={`text-sm font-mono font-bold ${(agent.totalPnL ?? 0) >= 0 ? "text-green-400" : "text-red-400"}`}>
-                        {(agent.totalPnL ?? 0) >= 0 ? "+" : ""}{(agent.totalPnL ?? 0).toFixed(1)}%
-                      </span>
-                      <div className="flex gap-1 shrink-0">
-                        {agent.alive && (
+                      {/* Row 2: Stats + Actions */}
+                      <div className="flex items-center justify-between mt-1.5 ml-8 sm:ml-9">
+                        <div className="flex gap-2 sm:gap-3 text-[9px] sm:text-[10px] text-gray-500">
+                          <span>W:{agent.successCount ?? 0}</span>
+                          <span>L:{agent.failCount ?? 0}</span>
+                          <span className="hidden sm:inline">Launches:{agent.launchCount ?? 0}</span>
+                        </div>
+                        <div className="flex gap-1 shrink-0">
+                          {agent.alive && (
+                            <button
+                              onClick={() => handleKill(agent.id, agent.name)}
+                              className="text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 sm:py-1 rounded bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 hover:bg-yellow-500/20 transition-all"
+                              title="Kill agent"
+                            >Kill</button>
+                          )}
                           <button
-                            onClick={() => handleKill(agent.id, agent.name)}
-                            className="text-[10px] px-2 py-1 rounded bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 hover:bg-yellow-500/20 transition-all"
-                            title="Kill agent"
-                          >Kill</button>
-                        )}
-                        <button
-                          onClick={() => handleDelete(agent.id, agent.name)}
-                          className="text-[10px] px-2 py-1 rounded bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition-all"
-                          title="Delete agent"
-                        >Delete</button>
+                            onClick={() => handleDelete(agent.id, agent.name)}
+                            className="text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 sm:py-1 rounded bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition-all"
+                            title="Delete agent"
+                          >Del</button>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -194,34 +198,34 @@ export default function AdminPage() {
               ) : (
                 <div className="space-y-2 max-h-[400px] overflow-y-auto">
                   {stats.recentProposals.map((p) => (
-                    <div key={p.id} className="bg-white/[0.02] rounded-lg p-2.5">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium text-white">{p.tokenName}</span>
-                          <span className="text-[10px] text-gray-500">{p.tokenSymbol}</span>
+                    <div key={p.id} className="bg-white/[0.02] rounded-lg p-2 sm:p-2.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className="text-xs sm:text-sm font-medium text-white truncate">{p.tokenName}</span>
+                          <span className="text-[9px] sm:text-[10px] text-gray-500">{p.tokenSymbol}</span>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1 sm:gap-2 shrink-0">
                           {p.executed ? (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-500/10 text-green-400 border border-green-500/20">
-                              Launched
+                            <span className="text-[9px] sm:text-[10px] px-1 sm:px-1.5 py-0.5 rounded bg-green-500/10 text-green-400 border border-green-500/20">
+                              ✓
                             </span>
                           ) : (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-yellow-500/10 text-yellow-400 border border-yellow-500/20">
-                              Pending
+                            <span className="text-[9px] sm:text-[10px] px-1 sm:px-1.5 py-0.5 rounded bg-yellow-500/10 text-yellow-400 border border-yellow-500/20">
+                              ⏳
                             </span>
                           )}
-                          <span className={`text-[10px] px-1.5 py-0.5 rounded ${
+                          <span className={`text-[9px] sm:text-[10px] px-1 sm:px-1.5 py-0.5 rounded ${
                             p.mode === "onchain" ? "bg-blue-500/10 text-blue-400" : "bg-gray-500/10 text-gray-400"
                           }`}>
                             {p.mode || "sim"}
                           </span>
                         </div>
                       </div>
-                      <div className="flex gap-3 text-[10px] text-gray-500 mt-1">
-                        <span>Confidence: {p.confidence ?? 0}%</span>
+                      <div className="flex gap-2 sm:gap-3 text-[9px] sm:text-[10px] text-gray-500 mt-1">
+                        <span>{p.confidence ?? 0}%</span>
                         {p.priceChange != null && (
                           <span className={(p.priceChange ?? 0) >= 0 ? "text-green-400" : "text-red-400"}>
-                            PnL: {(p.priceChange ?? 0) >= 0 ? "+" : ""}{(p.priceChange ?? 0).toFixed(1)}%
+                            {(p.priceChange ?? 0) >= 0 ? "+" : ""}{(p.priceChange ?? 0).toFixed(1)}%
                           </span>
                         )}
                         <span>{new Date(p.timestamp || Date.now()).toLocaleDateString()}</span>
