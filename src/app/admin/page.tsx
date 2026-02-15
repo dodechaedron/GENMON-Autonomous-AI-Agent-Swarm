@@ -140,13 +140,13 @@ export default function AdminPage() {
                           <span className="text-[10px] text-gray-600">Gen {agent.generation}</span>
                         </div>
                         <div className="flex gap-3 text-[10px] text-gray-500 mt-0.5">
-                          <span>W: {agent.successCount}</span>
-                          <span>L: {agent.failCount}</span>
-                          <span>Launches: {agent.launchCount}</span>
+                          <span>W: {agent.successCount ?? 0}</span>
+                          <span>L: {agent.failCount ?? 0}</span>
+                          <span>Launches: {agent.launchCount ?? 0}</span>
                         </div>
                       </div>
-                      <span className={`text-sm font-mono font-bold ${agent.totalPnL >= 0 ? "text-green-400" : "text-red-400"}`}>
-                        {agent.totalPnL >= 0 ? "+" : ""}{agent.totalPnL.toFixed(1)}%
+                      <span className={`text-sm font-mono font-bold ${(agent.totalPnL ?? 0) >= 0 ? "text-green-400" : "text-red-400"}`}>
+                        {(agent.totalPnL ?? 0) >= 0 ? "+" : ""}{(agent.totalPnL ?? 0).toFixed(1)}%
                       </span>
                     </div>
                   ))}
@@ -188,13 +188,13 @@ export default function AdminPage() {
                         </div>
                       </div>
                       <div className="flex gap-3 text-[10px] text-gray-500 mt-1">
-                        <span>Confidence: {p.confidence}%</span>
-                        {p.priceChange !== undefined && (
-                          <span className={p.priceChange >= 0 ? "text-green-400" : "text-red-400"}>
-                            PnL: {p.priceChange >= 0 ? "+" : ""}{p.priceChange.toFixed(1)}%
+                        <span>Confidence: {p.confidence ?? 0}%</span>
+                        {p.priceChange != null && (
+                          <span className={(p.priceChange ?? 0) >= 0 ? "text-green-400" : "text-red-400"}>
+                            PnL: {(p.priceChange ?? 0) >= 0 ? "+" : ""}{(p.priceChange ?? 0).toFixed(1)}%
                           </span>
                         )}
-                        <span>{new Date(p.timestamp).toLocaleDateString()}</span>
+                        <span>{new Date(p.timestamp || Date.now()).toLocaleDateString()}</span>
                       </div>
                     </div>
                   ))}
