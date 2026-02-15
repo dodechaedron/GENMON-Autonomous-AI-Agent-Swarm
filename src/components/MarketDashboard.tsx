@@ -72,7 +72,7 @@ export default function MarketDashboard() {
     setError(null);
     try {
       const [sentRes, newsRes, chainRes] = await Promise.allSettled([
-        fetch("/api/market?action=sentiment&count=8"),
+        fetch("/api/market?action=sentiment&count=12"),
         fetch("/api/market?action=news&count=10"),
         fetch("/api/market?action=onchain"),
       ]);

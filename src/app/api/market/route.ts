@@ -46,19 +46,19 @@ export async function GET(req: NextRequest) {
     switch (action) {
       case "sentiment": {
         const data = await marketData.getMarketSentiment(Math.min(count, 15)).catch(() => []);
-        return NextResponse.json({ data, source: "server" });
+        return NextResponse.json({ data, source: "server", timestamp: Date.now() });
       }
       case "trending": {
         const data = await marketData.getTrendingCoins().catch(() => []);
-        return NextResponse.json({ data, source: "server" });
+        return NextResponse.json({ data, source: "server", timestamp: Date.now() });
       }
       case "gainers": {
         const data = await marketData.getTopGainers(Math.min(count, 20)).catch(() => []);
-        return NextResponse.json({ data, source: "server" });
+        return NextResponse.json({ data, source: "server", timestamp: Date.now() });
       }
       case "news": {
         const data = await marketData.getCryptoNews(Math.min(count, 30)).catch(() => []);
-        return NextResponse.json({ data, source: "server" });
+        return NextResponse.json({ data, source: "server", timestamp: Date.now() });
       }
       case "categories": {
         const data = await marketData.getTrendingCategories(Math.min(count, 15)).catch(() => []);

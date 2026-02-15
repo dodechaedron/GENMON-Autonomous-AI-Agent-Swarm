@@ -119,6 +119,7 @@ export class MarketDataService {
     try {
       const res = await fetch(`${CG_BASE}/search/trending`, {
         headers: { accept: "application/json" },
+        signal: AbortSignal.timeout(8000),
       });
       if (!res.ok) throw new Error(`CoinGecko ${res.status}`);
       const data = await res.json();
@@ -141,7 +142,7 @@ export class MarketDataService {
         }
       );
 
-      setCache(cacheKey, coins, 120_000); // 2 min cache
+      setCache(cacheKey, coins, 90_000); // 1.5 min cache
       return coins;
     } catch (err) {
       /* silent: CoinGecko trending may fail due to rate limits */
@@ -160,7 +161,7 @@ export class MarketDataService {
     try {
       const res = await fetch(
         `${CG_BASE}/coins/markets?vs_currency=usd&order=volume_desc&per_page=${limit}&page=1&sparkline=false&price_change_percentage=24h`,
-        { headers: { accept: "application/json" } }
+        { headers: { accept: "application/json" }, signal: AbortSignal.timeout(8000) }
       );
       if (!res.ok) throw new Error(`CoinGecko ${res.status}`);
       const data: Record<string, unknown>[] = await res.json();
@@ -176,7 +177,7 @@ export class MarketDataService {
         source: "coingecko" as const,
       }));
 
-      setCache(cacheKey, coins, 120_000);
+      setCache(cacheKey, coins, 90_000); // 1.5 min cache
       return coins;
     } catch (err) {
       /* silent: CoinGecko markets may fail due to rate limits */
@@ -464,7 +465,7 @@ export class MarketDataService {
     const [trending, boosted, gainers, news, categories, newPairs, onChainSentiment] = await Promise.all([
       this.getTrendingCoins().catch(() => []),
       this.getBoostedTokens().catch(() => []),
-      this.getTopGainers(10).catch(() => []),
+      this.getTopGainers(15).catch(() => []),
       this.getCryptoNews(20).catch(() => []),
       this.getTrendingCategories(8).catch(() => []),
       this.getNewDexPairs("monad").catch(() => []),
@@ -474,8 +475,12 @@ export class MarketDataService {
     const sentiments: MarketSentiment[] = [];
     const seenTopics = new Set<string>();
 
+    // Distribute slots: trending gets ~40%, rest shared among other sources
+    const trendingSlots = Math.max(2, Math.ceil(count * 0.35));
+    const gainerSlots = Math.max(2, Math.ceil(count * 0.25));
+
     // 1. From CoinGecko trending
-    for (const coin of trending.slice(0, count)) {
+    for (const coin of trending.slice(0, trendingSlots)) {
       const priceChange = coin.priceChangePercent24h;
       const momentumBonus = priceChange > 0 ? Math.min(20, priceChange) : Math.max(-20, priceChange / 2);
       const score = Math.max(10, Math.min(100, Math.round(coin.score + momentumBonus)));
@@ -498,7 +503,24 @@ export class MarketDataService {
       });
     }
 
-    // 2. From CryptoCompare news — extract hot narratives
+    // 2. From top gainers — always include for variety
+    for (const coin of gainers.slice(0, gainerSlots)) {
+      const key = coin.symbol.toLowerCase();
+      if (seenTopics.has(key)) continue;
+      seenTopics.add(key);
+      const score = Math.max(10, Math.min(100, 50 + coin.priceChangePercent24h));
+      sentiments.push({
+        topic: `${coin.name} (${coin.symbol})`,
+        score: Math.round(score),
+        volume: 10000,
+        trending: coin.priceChangePercent24h > 5,
+        keywords: [coin.symbol.toLowerCase(), "gainer", "volume", "coingecko"],
+        source: "coingecko",
+        data: { priceChange: coin.priceChangePercent24h },
+      });
+    }
+
+    // 3. From CryptoCompare news — extract hot narratives
     if (news.length > 0) {
       const newsKeywords = this.extractNewsKeywords(news);
       for (const kw of newsKeywords.slice(0, 3)) {
@@ -515,7 +537,7 @@ export class MarketDataService {
       }
     }
 
-    // 3. From CoinGecko categories — sector momentum
+    // 4. From CoinGecko categories — sector momentum
     for (const cat of categories.slice(0, 2)) {
       const catKey = cat.name.toLowerCase();
       if (seenTopics.has(catKey)) continue;
@@ -533,8 +555,8 @@ export class MarketDataService {
       });
     }
 
-    // 4. From DexScreener boosted tokens
-    for (const token of boosted.slice(0, Math.max(1, count - sentiments.length))) {
+    // 5. From DexScreener boosted tokens
+    for (const token of boosted.slice(0, 2)) {
       const score = Math.min(100, 50 + token.totalAmount * 2);
       sentiments.push({
         topic: token.name || `Boosted ${token.chainId} Token`,
@@ -547,7 +569,7 @@ export class MarketDataService {
       });
     }
 
-    // 5. From new Monad DEX pairs (early signals)
+    // 6. From new Monad DEX pairs (early signals)
     for (const pair of newPairs.slice(0, 2)) {
       const sym = pair.baseToken.symbol.toLowerCase();
       if (!sym || seenTopics.has(sym)) continue;
@@ -566,7 +588,7 @@ export class MarketDataService {
       });
     }
 
-    // 6. From Monad on-chain activity (RPC direct)
+    // 7. From Monad on-chain activity (RPC direct)
     if (onChainSentiment && onChainSentiment.score > 20) {
       sentiments.push({
         topic: onChainSentiment.topic,
@@ -576,23 +598,6 @@ export class MarketDataService {
         keywords: onChainSentiment.keywords,
         source: "combined",
       });
-    }
-
-    // 7. From top gainers if we still need more
-    if (sentiments.length < count) {
-      for (const coin of gainers.slice(0, count - sentiments.length)) {
-        if (seenTopics.has(coin.symbol.toLowerCase())) continue;
-        const score = Math.max(10, Math.min(100, 50 + coin.priceChangePercent24h));
-        sentiments.push({
-          topic: `${coin.name} (${coin.symbol})`,
-          score,
-          volume: 10000,
-          trending: coin.priceChangePercent24h > 5,
-          keywords: [coin.symbol.toLowerCase(), "gainer", "volume"],
-          source: "coingecko",
-          data: { priceChange: coin.priceChangePercent24h },
-        });
-      }
     }
 
     return sentiments.sort((a, b) => b.score - a.score).slice(0, count);
