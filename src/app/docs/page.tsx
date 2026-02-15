@@ -38,12 +38,12 @@ export default function DocsPage() {
           </div>
           <div className="flex items-center gap-2">
             <a href="https://github.com/dodechaedron/GENMON-Autonomous-AI-Agent-Swarm" target="_blank" rel="noopener"
-              className="px-3 py-1.5 rounded-lg border border-white/[0.08] text-gray-400 text-xs hover:text-white hover:border-white/20 transition-all flex items-center gap-1.5">
+              className="px-2.5 sm:px-3 py-1.5 rounded-lg border border-white/[0.08] text-gray-400 text-xs hover:text-white hover:border-white/20 transition-all flex items-center gap-1.5">
               <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
-              GitHub
+              <span className="hidden sm:inline">GitHub</span>
             </a>
-            <Link href="/" className="px-3 py-1.5 rounded-lg border border-white/[0.08] text-gray-400 text-xs hover:text-white hover:border-white/20 transition-all">
-              ← Back
+            <Link href="/" className="px-2.5 sm:px-3 py-1.5 rounded-lg border border-white/[0.08] text-gray-400 text-xs hover:text-white hover:border-white/20 transition-all">
+              ←<span className="hidden sm:inline"> Back</span>
             </Link>
           </div>
         </div>
@@ -74,12 +74,12 @@ export default function DocsPage() {
         </aside>
 
         {/* Mobile Tab Bar */}
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 border-t border-white/[0.06] bg-[#0a0a12]/95 backdrop-blur-xl overflow-x-auto">
-          <div className="flex px-2 py-1.5">
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 border-t border-white/[0.06] bg-[#0a0a12]/95 backdrop-blur-xl safe-bottom">
+          <div className="flex px-1 py-1.5 overflow-x-auto scrollbar-thin" style={{ WebkitOverflowScrolling: 'touch' }}>
             {TABS.map((t) => (
               <button key={t.id} onClick={() => setTab(t.id)}
-                className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg text-[10px] whitespace-nowrap transition-all ${
-                  tab === t.id ? "text-cyan-400" : "text-gray-600"
+                className={`flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-lg text-[9px] whitespace-nowrap transition-all shrink-0 ${
+                  tab === t.id ? "text-cyan-400 bg-cyan-400/5" : "text-gray-600"
                 }`}>
                 <span className="text-sm">{t.icon}</span>
                 {t.label}
@@ -128,12 +128,12 @@ export default function DocsPage() {
 
 function SectionHeader({ title, subtitle, badge }: { title: string; subtitle?: string; badge?: string }) {
   return (
-    <div className="mb-6">
-      <div className="flex items-center gap-3 mb-1">
-        <h2 className="text-xl font-bold text-white tracking-tight">{title}</h2>
+    <div className="mb-5 sm:mb-6">
+      <div className="flex items-center gap-2 sm:gap-3 mb-1 flex-wrap">
+        <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">{title}</h2>
         {badge && <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-400/10 text-cyan-400 border border-cyan-400/20 font-medium">{badge}</span>}
       </div>
-      {subtitle && <p className="text-sm text-gray-500">{subtitle}</p>}
+      {subtitle && <p className="text-xs sm:text-sm text-gray-500">{subtitle}</p>}
     </div>
   );
 }
@@ -149,7 +149,7 @@ function DocCard({ title, children, accent = "cyan", icon }: { title: string; ch
   };
   const titleColors = { cyan: "text-cyan-400", purple: "text-purple-400", pink: "text-pink-400", green: "text-green-400", yellow: "text-yellow-400", blue: "text-blue-400" };
   return (
-    <div className={`bg-white/[0.02] border ${colors[accent]} rounded-xl p-5 transition-all`}>
+    <div className={`bg-white/[0.02] border ${colors[accent]} rounded-xl p-3.5 sm:p-5 transition-all`}>
       <div className="flex items-center gap-2 mb-3">
         {icon && <span className="text-base">{icon}</span>}
         <h3 className={`text-sm font-semibold ${titleColors[accent]}`}>{title}</h3>
@@ -163,7 +163,7 @@ function Code({ code, lang }: { code: string; lang?: string }) {
   return (
     <div className="relative group my-3">
       {lang && <div className="absolute top-2 right-2 text-[9px] text-gray-600 uppercase tracking-wider">{lang}</div>}
-      <pre className="bg-black/50 border border-white/[0.06] rounded-lg p-4 text-xs text-gray-300 overflow-x-auto font-mono leading-relaxed">
+      <pre className="bg-black/50 border border-white/[0.06] rounded-lg p-3 sm:p-4 text-[10px] sm:text-xs text-gray-300 overflow-x-auto font-mono leading-relaxed">
         <code>{code}</code>
       </pre>
     </div>
@@ -172,9 +172,9 @@ function Code({ code, lang }: { code: string; lang?: string }) {
 
 function InfoRow({ label, value, mono = true }: { label: string; value: string; mono?: boolean }) {
   return (
-    <div className="flex justify-between items-center py-2 border-b border-white/[0.04] last:border-0">
-      <span className="text-xs text-gray-500">{label}</span>
-      <span className={`text-xs text-gray-300 ${mono ? "font-mono" : ""}`}>{value}</span>
+    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 border-b border-white/[0.04] last:border-0 gap-0.5">
+      <span className="text-xs text-gray-500 shrink-0">{label}</span>
+      <span className={`text-[10px] sm:text-xs text-gray-300 ${mono ? "font-mono" : ""} break-all sm:break-normal sm:text-right`}>{value}</span>
     </div>
   );
 }
@@ -220,7 +220,7 @@ function OverviewSection() {
       ]} />
 
       <DocCard title="Tech Stack" icon="⚙️" accent="purple">
-        <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-xs">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5 text-xs">
           <div><span className="text-cyan-400">Frontend:</span> Next.js 14, React 18, Tailwind CSS</div>
           <div><span className="text-cyan-400">3D:</span> Three.js, React Three Fiber</div>
           <div><span className="text-cyan-400">Web3:</span> wagmi v2, RainbowKit, ethers.js v6</div>
@@ -370,7 +370,7 @@ function MarketDataSection() {
 
       <DocCard title="Notification Alerts" icon="🔔" accent="pink">
         <p className="mb-2">Real-time alerts sent to Telegram channel + Discord webhook:</p>
-        <div className="grid grid-cols-2 gap-1.5 text-xs">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-xs">
           <div>🚀 Token launch alerts</div>
           <div>💎 High-score opportunities (≥ 75)</div>
           <div>🧬 Breeding/evolution events</div>
@@ -450,6 +450,7 @@ function ArchitectureSection() {
       <SectionHeader title="Architecture" subtitle="System design and data flow" />
 
       <DocCard title="System Diagram" icon="🏗️" accent="cyan">
+        <div className="hidden sm:block">
         <Code code={`┌──────────────────────────────────────────────────────┐
 │                  Frontend (Next.js 14)                │
 │                                                       │
@@ -478,6 +479,28 @@ function ArchitectureSection() {
 │  GenmonRegistry  │  EvolutionEngine                   │
 │  LaunchExecutor  │  TreasuryManager                   │
 └──────────────────────────────────────────────────────┘`} />
+        </div>
+        <div className="sm:hidden space-y-2 text-xs">
+          <div className="p-2.5 rounded-lg bg-cyan-400/5 border border-cyan-400/10">
+            <div className="text-cyan-400 font-medium mb-1">Frontend</div>
+            <div className="text-gray-500 text-[11px]">3D Swarm Viz → Agent Panel → Market Dashboard</div>
+          </div>
+          <div className="flex justify-center text-gray-600">▼</div>
+          <div className="p-2.5 rounded-lg bg-purple-400/5 border border-purple-400/10">
+            <div className="text-purple-400 font-medium mb-1">Engine Layer</div>
+            <div className="text-gray-500 text-[11px]">Zustand Store ↔ Supabase ↔ AgentEngine ↔ SwarmOrchestrator</div>
+          </div>
+          <div className="flex justify-center text-gray-600">▼</div>
+          <div className="p-2.5 rounded-lg bg-green-400/5 border border-green-400/10">
+            <div className="text-green-400 font-medium mb-1">Services</div>
+            <div className="text-gray-500 text-[11px]">NadFun · MarketData · OnChain · Telegram/Discord</div>
+          </div>
+          <div className="flex justify-center text-gray-600">▼</div>
+          <div className="p-2.5 rounded-lg bg-pink-400/5 border border-pink-400/10">
+            <div className="text-pink-400 font-medium mb-1">Monad Blockchain</div>
+            <div className="text-gray-500 text-[11px]">Registry · Evolution · Launcher · Treasury</div>
+          </div>
+        </div>
       </DocCard>
 
       <DocCard title="Data Flow" icon="🔄" accent="purple">

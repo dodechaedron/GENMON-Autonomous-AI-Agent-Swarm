@@ -259,10 +259,10 @@ export default function AdminPage() {
 
 function StatCard({ label, value, icon, color }: { label: string; value: number; icon: string; color: string }) {
   return (
-    <div className="bg-space-light/50 border border-white/5 rounded-xl p-3 text-center">
-      <div className="text-xl mb-1">{icon}</div>
-      <div className={`text-2xl font-bold ${color}`}>{value}</div>
-      <div className="text-[10px] text-gray-500 mt-0.5">{label}</div>
+    <div className="bg-space-light/50 border border-white/5 rounded-xl p-2.5 sm:p-3 text-center">
+      <div className="text-lg sm:text-xl mb-0.5 sm:mb-1">{icon}</div>
+      <div className={`text-xl sm:text-2xl font-bold ${color}`}>{value}</div>
+      <div className="text-[9px] sm:text-[10px] text-gray-500 mt-0.5">{label}</div>
     </div>
   );
 }
