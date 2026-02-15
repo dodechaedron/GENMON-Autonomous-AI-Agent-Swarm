@@ -140,7 +140,7 @@ export default function AdminPage() {
               ) : (
                 <div className="space-y-2">
                   {stats.topAgents.map((agent, i) => (
-                    <div key={agent.id} className="flex items-center gap-3 bg-white/[0.02] rounded-lg p-2.5 group">
+                    <div key={agent.id} className="flex items-center gap-3 bg-white/[0.02] rounded-lg p-2.5">
                       <span className="text-lg w-7 text-center">
                         {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `#${i + 1}`}
                       </span>
@@ -164,19 +164,19 @@ export default function AdminPage() {
                       <span className={`text-sm font-mono font-bold ${(agent.totalPnL ?? 0) >= 0 ? "text-green-400" : "text-red-400"}`}>
                         {(agent.totalPnL ?? 0) >= 0 ? "+" : ""}{(agent.totalPnL ?? 0).toFixed(1)}%
                       </span>
-                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex gap-1 shrink-0">
                         {agent.alive && (
                           <button
                             onClick={() => handleKill(agent.id, agent.name)}
-                            className="text-[10px] px-1.5 py-0.5 rounded bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 hover:bg-yellow-500/20 transition-all"
-                            title="Kill agent (mark as dead)"
-                          >☠️</button>
+                            className="text-[10px] px-2 py-1 rounded bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 hover:bg-yellow-500/20 transition-all"
+                            title="Kill agent"
+                          >Kill</button>
                         )}
                         <button
                           onClick={() => handleDelete(agent.id, agent.name)}
-                          className="text-[10px] px-1.5 py-0.5 rounded bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition-all"
-                          title="Delete agent permanently"
-                        >🗑️</button>
+                          className="text-[10px] px-2 py-1 rounded bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition-all"
+                          title="Delete agent"
+                        >Delete</button>
                       </div>
                     </div>
                   ))}
