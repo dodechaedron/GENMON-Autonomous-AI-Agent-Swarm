@@ -22,11 +22,16 @@ export default function AdminPage() {
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
 
   const refresh = async () => {
-    setLoading(true);
-    const data = await SupabaseService.getGlobalStats();
-    setStats(data);
-    setLastRefresh(new Date());
-    setLoading(false);
+    try {
+      setLoading(true);
+      const data = await SupabaseService.getGlobalStats();
+      setStats(data);
+      setLastRefresh(new Date());
+    } catch {
+      setStats({ totalAgents: 0, aliveAgents: 0, totalProposals: 0, executedProposals: 0, totalBreedings: 0, uniqueWallets: 0, topAgents: [], recentProposals: [] });
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { refresh(); }, []);

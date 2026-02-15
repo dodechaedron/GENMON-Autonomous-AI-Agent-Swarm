@@ -213,31 +213,39 @@ export const SupabaseService = {
     topAgents: GenmonAgent[]; recentProposals: LaunchProposal[];
   }> {
     const sb = getClient();
-    const empty = { totalAgents: 0, aliveAgents: 0, totalProposals: 0, executedProposals: 0, totalBreedings: 0, uniqueWallets: 0, topAgents: [], recentProposals: [] };
+    const empty = { totalAgents: 0, aliveAgents: 0, totalProposals: 0, executedProposals: 0, totalBreedings: 0, uniqueWallets: 0, topAgents: [] as GenmonAgent[], recentProposals: [] as LaunchProposal[] };
     if (!sb) return empty;
 
-    const [agentsRes, aliveRes, propsRes, execRes, breedRes, walletsRes, topRes, recentRes] = await Promise.all([
-      sb.from("agents").select("*", { count: "exact", head: true }),
-      sb.from("agents").select("*", { count: "exact", head: true }).eq("alive", true),
-      sb.from("proposals").select("*", { count: "exact", head: true }),
-      sb.from("proposals").select("*", { count: "exact", head: true }).eq("executed", true),
-      sb.from("breeding_log").select("*", { count: "exact", head: true }),
-      sb.from("agents").select("owner_wallet"),
-      sb.from("agents").select("*").eq("alive", true).order("total_pnl", { ascending: false }).limit(10),
-      sb.from("proposals").select("*").order("timestamp", { ascending: false }).limit(20),
-    ]);
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const safe = (p: PromiseLike<any>, fb: any) => Promise.resolve(p).catch(() => fb);
 
-    const uniqueWallets = new Set((walletsRes.data ?? []).map((r: Record<string, unknown>) => r.owner_wallet).filter(Boolean)).size;
+      const [agentsRes, aliveRes, propsRes, execRes, breedRes, walletsRes, topRes, recentRes] = await Promise.all([
+        safe(sb.from("agents").select("*", { count: "exact", head: true }), { count: 0 }),
+        safe(sb.from("agents").select("*", { count: "exact", head: true }).eq("alive", true), { count: 0 }),
+        safe(sb.from("proposals").select("*", { count: "exact", head: true }), { count: 0 }),
+        safe(sb.from("proposals").select("*", { count: "exact", head: true }).eq("executed", true), { count: 0 }),
+        safe(sb.from("breeding_log").select("*", { count: "exact", head: true }), { count: 0 }),
+        safe(sb.from("agents").select("owner_wallet"), { data: [] }),
+        safe(sb.from("agents").select("*").eq("alive", true).order("total_pnl", { ascending: false }).limit(10), { data: [] }),
+        safe(sb.from("proposals").select("*").order("timestamp", { ascending: false }).limit(20), { data: [] }),
+      ]);
 
-    return {
-      totalAgents: agentsRes.count ?? 0,
-      aliveAgents: aliveRes.count ?? 0,
-      totalProposals: propsRes.count ?? 0,
-      executedProposals: execRes.count ?? 0,
-      totalBreedings: breedRes.count ?? 0,
-      uniqueWallets,
-      topAgents: (topRes.data ?? []).map(rowToAgent),
-      recentProposals: (recentRes.data ?? []).map(rowToProposal),
-    };
+      const walletData = (walletsRes.data ?? []) as Record<string, unknown>[];
+      const uniqueWallets = new Set(walletData.map((r) => r.owner_wallet).filter(Boolean)).size;
+
+      return {
+        totalAgents: agentsRes.count ?? 0,
+        aliveAgents: aliveRes.count ?? 0,
+        totalProposals: propsRes.count ?? 0,
+        executedProposals: execRes.count ?? 0,
+        totalBreedings: breedRes.count ?? 0,
+        uniqueWallets,
+        topAgents: ((topRes.data ?? []) as Record<string, unknown>[]).map(rowToAgent),
+        recentProposals: ((recentRes.data ?? []) as Record<string, unknown>[]).map(rowToProposal),
+      };
+    } catch {
+      return empty;
+    }
   },
 };
