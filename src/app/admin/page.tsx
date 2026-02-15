@@ -60,6 +60,18 @@ export default function AdminPage() {
 
   useEffect(() => { refresh(); }, []);
 
+  const handleKill = async (id: string, name: string) => {
+    if (!confirm(`Kill agent "${name}"? This marks it as dead but keeps the record.`)) return;
+    const ok = await SupabaseService.killAgent(id);
+    if (ok) refresh();
+  };
+
+  const handleDelete = async (id: string, name: string) => {
+    if (!confirm(`Permanently delete agent "${name}"? This cannot be undone.`)) return;
+    const ok = await SupabaseService.deleteAgent(id);
+    if (ok) refresh();
+  };
+
   // Auto-refresh every 30s
   useEffect(() => {
     const interval = setInterval(refresh, 30_000);
@@ -128,7 +140,7 @@ export default function AdminPage() {
               ) : (
                 <div className="space-y-2">
                   {stats.topAgents.map((agent, i) => (
-                    <div key={agent.id} className="flex items-center gap-3 bg-white/[0.02] rounded-lg p-2.5">
+                    <div key={agent.id} className="flex items-center gap-3 bg-white/[0.02] rounded-lg p-2.5 group">
                       <span className="text-lg w-7 text-center">
                         {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `#${i + 1}`}
                       </span>
@@ -141,6 +153,7 @@ export default function AdminPage() {
                             {agent.type}
                           </span>
                           <span className="text-[10px] text-gray-600">Gen {agent.generation}</span>
+                          {!agent.alive && <span className="text-[10px] text-red-400">☠️ Dead</span>}
                         </div>
                         <div className="flex gap-3 text-[10px] text-gray-500 mt-0.5">
                           <span>W: {agent.successCount ?? 0}</span>
@@ -151,6 +164,20 @@ export default function AdminPage() {
                       <span className={`text-sm font-mono font-bold ${(agent.totalPnL ?? 0) >= 0 ? "text-green-400" : "text-red-400"}`}>
                         {(agent.totalPnL ?? 0) >= 0 ? "+" : ""}{(agent.totalPnL ?? 0).toFixed(1)}%
                       </span>
+                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {agent.alive && (
+                          <button
+                            onClick={() => handleKill(agent.id, agent.name)}
+                            className="text-[10px] px-1.5 py-0.5 rounded bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 hover:bg-yellow-500/20 transition-all"
+                            title="Kill agent (mark as dead)"
+                          >☠️</button>
+                        )}
+                        <button
+                          onClick={() => handleDelete(agent.id, agent.name)}
+                          className="text-[10px] px-1.5 py-0.5 rounded bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition-all"
+                          title="Delete agent permanently"
+                        >🗑️</button>
+                      </div>
                     </div>
                   ))}
                 </div>

@@ -140,6 +140,22 @@ export const SupabaseService = {
     if (error) console.error("[Supabase] updateAgent:", error.message);
   },
 
+  async killAgent(id: string): Promise<boolean> {
+    const sb = getClient();
+    if (!sb) return false;
+    const { error } = await sb.from("agents").update({ alive: false, updated_at: new Date().toISOString() }).eq("id", id);
+    if (error) { console.error("[Supabase] killAgent:", error.message); return false; }
+    return true;
+  },
+
+  async deleteAgent(id: string): Promise<boolean> {
+    const sb = getClient();
+    if (!sb) return false;
+    const { error } = await sb.from("agents").delete().eq("id", id);
+    if (error) { console.error("[Supabase] deleteAgent:", error.message); return false; }
+    return true;
+  },
+
   // --- Proposals (filtered by wallet) ---
   async fetchProposals(wallet?: string): Promise<LaunchProposal[]> {
     const sb = getClient();
@@ -227,7 +243,7 @@ export const SupabaseService = {
         safe(sb.from("proposals").select("*", { count: "exact", head: true }).eq("executed", true), { count: 0 }),
         safe(sb.from("breeding_log").select("*", { count: "exact", head: true }), { count: 0 }),
         safe(sb.from("agents").select("owner_wallet"), { data: [] }),
-        safe(sb.from("agents").select("*").eq("alive", true).order("total_pnl", { ascending: false }).limit(10), { data: [] }),
+        safe(sb.from("agents").select("*").order("total_pnl", { ascending: false }).limit(20), { data: [] }),
         safe(sb.from("proposals").select("*").order("timestamp", { ascending: false }).limit(20), { data: [] }),
       ]);
 
