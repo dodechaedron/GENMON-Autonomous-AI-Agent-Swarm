@@ -1,9 +1,33 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Component, ReactNode } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { SupabaseService } from "@/services/SupabaseService";
 import type { GenmonAgent, LaunchProposal } from "@/store/useGenmonStore";
+
+// Error boundary to catch client-side crashes
+class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean; error: string }> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: "" };
+  }
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error: error.message };
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen bg-space text-white flex items-center justify-center">
+          <div className="text-center space-y-4">
+            <p className="text-red-400 text-lg">Admin Dashboard Error</p>
+            <p className="text-gray-500 text-sm">{this.state.error}</p>
+            <Link href="/" className="text-cyan text-sm underline">← Back to Home</Link>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 interface GlobalStats {
   totalAgents: number;
@@ -43,13 +67,14 @@ export default function AdminPage() {
   }, []);
 
   return (
+    <ErrorBoundary>
     <main className="min-h-screen bg-space text-white">
       {/* Header */}
       <header className="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-white/5 bg-space/90 backdrop-blur-xl">
         <div className="flex items-center gap-3">
           <Link href="/" className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-full overflow-hidden ring-1 ring-cyan/30">
-              <Image src="/logo.png" alt="GENMON" width={32} height={32} className="w-full h-full object-cover" />
+              <img src="/logo.png" alt="GENMON" width={32} height={32} className="w-full h-full object-cover" />
             </div>
             <span className="text-sm font-bold">
               <span className="text-cyan">GEN</span><span className="text-purple">MON</span>
@@ -194,6 +219,7 @@ export default function AdminPage() {
         </div>
       )}
     </main>
+    </ErrorBoundary>
   );
 }
 
