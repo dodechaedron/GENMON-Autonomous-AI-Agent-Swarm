@@ -237,7 +237,7 @@ export class MarketDataService {
 
     try {
       // Search multiple terms to find Monad chain pairs (including nad-fun)
-      const queries = ["monad", "MON USDC", "WMON"];
+      const queries = ["CHOG monad", "MOYAKI monad", "DAK monad", "molandak", "YAKI monad", "monad meme"];
       const allPairs: DexPair[] = [];
 
       for (const q of queries) {
@@ -617,13 +617,13 @@ export class MarketDataService {
     // Distribute slots — Nad.fun gets priority
     const nadFunSlots = Math.max(5, Math.ceil(count * 0.4));
     const trendingSlots = Math.max(2, Math.ceil(count * 0.15));
-    const gainerSlots = Math.max(1, Math.ceil(count * 0.1));
-    const dexSlots = Math.max(3, Math.ceil(count * 0.2));
+    const gainerSlots = Math.max(1, Math.ceil(count * 0.08));
+    const dexSlots = Math.max(4, Math.ceil(count * 0.25));
 
     // 0. From Nad.fun trending (PRIORITY — Monad native)
     for (const pair of nadFunTokens.slice(0, nadFunSlots)) {
       const sym = pair.baseToken.symbol.toLowerCase();
-      if (!sym || sym === "mon" || sym === "wmon" || seenTopics.has(sym)) continue;
+      if (!sym || sym === "wmon" || seenTopics.has(sym)) continue;
       seenTopics.add(sym);
       const volScore = pair.volume24h > 100_000 ? 35 : pair.volume24h > 10_000 ? 25 : pair.volume24h > 1_000 ? 15 : 5;
       const changeScore = Math.min(25, Math.max(-15, pair.priceChange24h / 2));
@@ -704,7 +704,7 @@ export class MarketDataService {
     // 4. From CryptoCompare news — extract hot narratives
     if (news.length > 0) {
       const newsKeywords = this.extractNewsKeywords(news);
-      for (const kw of newsKeywords.slice(0, 3)) {
+      for (const kw of newsKeywords.slice(0, 2)) {
         if (seenTopics.has(kw.keyword)) continue;
         seenTopics.add(kw.keyword);
         sentiments.push({
@@ -719,7 +719,7 @@ export class MarketDataService {
     }
 
     // 5. From CoinGecko categories — sector momentum
-    for (const cat of categories.slice(0, 2)) {
+    for (const cat of categories.slice(0, 1)) {
       const catKey = cat.name.toLowerCase();
       if (seenTopics.has(catKey)) continue;
       seenTopics.add(catKey);
@@ -737,7 +737,7 @@ export class MarketDataService {
     }
 
     // 6. From DexScreener boosted tokens
-    for (const token of boosted.slice(0, 2)) {
+    for (const token of boosted.slice(0, 1)) {
       const score = Math.min(100, 50 + token.totalAmount * 2);
       sentiments.push({
         topic: token.name || `Boosted ${token.chainId} Token`,
