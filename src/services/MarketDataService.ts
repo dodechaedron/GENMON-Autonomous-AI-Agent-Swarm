@@ -615,10 +615,10 @@ export class MarketDataService {
     const seenTopics = new Set<string>();
 
     // Distribute slots — Nad.fun gets priority
-    const nadFunSlots = Math.max(4, Math.ceil(count * 0.35));
-    const trendingSlots = Math.max(2, Math.ceil(count * 0.2));
+    const nadFunSlots = Math.max(5, Math.ceil(count * 0.4));
+    const trendingSlots = Math.max(2, Math.ceil(count * 0.15));
     const gainerSlots = Math.max(1, Math.ceil(count * 0.1));
-    const dexSlots = Math.max(1, Math.ceil(count * 0.1));
+    const dexSlots = Math.max(3, Math.ceil(count * 0.2));
 
     // 0. From Nad.fun trending (PRIORITY — Monad native)
     for (const pair of nadFunTokens.slice(0, nadFunSlots)) {
@@ -695,7 +695,7 @@ export class MarketDataService {
         score: Math.round(score),
         volume: Math.round(pair.volume24h),
         trending: pair.volume24h > 500_000,
-        keywords: [sym, pair.chainId, pair.dexId, "dexscreener", "volume"],
+        keywords: [sym, "monad", pair.dexId, "dexscreener", "volume"],
         source: "dexscreener",
         data: { dexPairs: [pair], priceChange: pair.priceChange24h },
       });
@@ -781,7 +781,22 @@ export class MarketDataService {
       });
     }
 
-    return sentiments.sort((a, b) => b.score - a.score).slice(0, count);
+    // Separate Monad/Nad.fun tokens from others — they get reserved slots
+    const monadTokens = sentiments.filter(
+      (s) => s.keywords.includes("monad") || s.keywords.includes("nad-fun") || s.keywords.includes("new-pair")
+    );
+    const otherTokens = sentiments.filter(
+      (s) => !s.keywords.includes("monad") && !s.keywords.includes("nad-fun") && !s.keywords.includes("new-pair")
+    );
+
+    // Reserve at least 40% of slots for Monad ecosystem
+    const monadReserved = Math.max(4, Math.ceil(count * 0.4));
+    const topMonad = monadTokens.sort((a, b) => b.score - a.score).slice(0, monadReserved);
+    const remainingSlots = count - topMonad.length;
+    const topOther = otherTokens.sort((a, b) => b.score - a.score).slice(0, remainingSlots);
+
+    // Merge: Monad first, then others, re-sort by score
+    return [...topMonad, ...topOther].sort((a, b) => b.score - a.score).slice(0, count);
   }
 
   /**
