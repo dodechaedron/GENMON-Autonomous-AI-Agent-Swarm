@@ -99,7 +99,7 @@ export default function MarketDashboard() {
 
   useEffect(() => {
     fetchAll();
-    const interval = setInterval(fetchAll, 120_000); // refresh every 2 min
+    const interval = setInterval(fetchAll, 60_000); // refresh every 1 min
     return () => clearInterval(interval);
   }, [fetchAll]);
 
@@ -110,7 +110,12 @@ export default function MarketDashboard() {
         <div className="flex items-center gap-2">
           <span className="text-sm">📊</span>
           <span className="text-xs font-semibold text-white/80">Market Intel</span>
-          {loading && <span className="w-1.5 h-1.5 rounded-full bg-cyan animate-pulse" />}
+          {loading ? (
+            <span className="w-1.5 h-1.5 rounded-full bg-cyan animate-pulse" />
+          ) : (
+            <span className="w-1.5 h-1.5 rounded-full bg-green-400" title="Live" />
+          )}
+          <span className="text-[8px] text-gray-600">LIVE</span>
         </div>
         <div className="flex items-center gap-1.5">
           {lastUpdate && (
@@ -183,13 +188,19 @@ function TrendingTab({ items, loading }: { items: TrendingItem[]; loading: boole
             <span className={`px-1.5 py-0.5 rounded border ${scoreBg(item.score)}`}>
               {item.score >= 75 ? "Bullish" : item.score >= 50 ? "Neutral" : "Bearish"}
             </span>
-            <span>Vol: {formatVolume(item.volume)}</span>
+            {item.volume > 0 && <span>Vol: {formatVolume(item.volume)}</span>}
             {item.data?.priceChange !== undefined && (
               <span className={item.data.priceChange >= 0 ? "text-green-400" : "text-red-400"}>
                 {item.data.priceChange >= 0 ? "+" : ""}{item.data.priceChange.toFixed(1)}%
               </span>
             )}
-            <span className="text-gray-600 ml-auto">{item.source}</span>
+            <span className={`ml-auto px-1 py-0.5 rounded text-[9px] ${
+              item.source === "coingecko" ? "bg-yellow-500/10 text-yellow-400" :
+              item.source === "dexscreener" ? "bg-green-500/10 text-green-400" :
+              "bg-blue-500/10 text-blue-400"
+            }`}>
+              {item.source === "coingecko" ? "CG" : item.source === "dexscreener" ? "DEX" : "MIX"}
+            </span>
           </div>
           {item.keywords.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-1">
