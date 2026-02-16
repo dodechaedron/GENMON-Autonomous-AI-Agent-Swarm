@@ -236,8 +236,8 @@ export class MarketDataService {
     if (cached) return cached;
 
     try {
-      // Search multiple terms to find Monad/nad-fun pairs
-      const queries = ["MON WMON monad", "nad fun monad"];
+      // Search multiple terms to find Monad chain pairs (including nad-fun)
+      const queries = ["monad", "MON USDC", "WMON"];
       const allPairs: DexPair[] = [];
 
       for (const q of queries) {
@@ -248,15 +248,13 @@ export class MarketDataService {
           if (!res.ok) continue;
           const data = await res.json();
           const pairs = (data.pairs || [])
-            .filter((p: Record<string, unknown>) => 
-              (p.chainId as string) === "monad" && (p.dexId as string) === "nad-fun"
-            )
+            .filter((p: Record<string, unknown>) => (p.chainId as string) === "monad")
             .map((p: Record<string, unknown>) => {
               const base = (p.baseToken as Record<string, string>) || {};
               const quote = (p.quoteToken as Record<string, string>) || {};
               return {
                 chainId: "monad",
-                dexId: "nad-fun",
+                dexId: (p.dexId as string) || "",
                 pairAddress: (p.pairAddress as string) || "",
                 baseToken: { address: base.address || "", name: base.name || "", symbol: base.symbol || "" },
                 quoteToken: { address: quote.address || "", name: quote.name || "", symbol: quote.symbol || "" },
@@ -274,19 +272,25 @@ export class MarketDataService {
         } catch { /* skip */ }
       }
 
-      // Deduplicate by base token symbol and sort by volume
+      // Deduplicate by pair address, prioritize nad-fun pairs, sort by volume
       const seen = new Set<string>();
       const unique = allPairs
-        .sort((a, b) => b.volume24h - a.volume24h)
+        .sort((a, b) => {
+          // Nad-fun pairs get priority
+          const aIsNad = a.dexId === "nad-fun" ? 1 : 0;
+          const bIsNad = b.dexId === "nad-fun" ? 1 : 0;
+          if (aIsNad !== bIsNad) return bIsNad - aIsNad;
+          return b.volume24h - a.volume24h;
+        })
         .filter((p) => {
-          const key = p.baseToken.symbol.toLowerCase();
+          const key = `${p.baseToken.symbol}-${p.dexId}`.toLowerCase();
           if (seen.has(key)) return false;
           seen.add(key);
-          return p.volume24h > 0; // only pairs with volume
+          return p.volume24h > 0;
         })
-        .slice(0, 15);
+        .slice(0, 20);
 
-      setCache(cacheKey, unique, 60_000); // 1 min cache for freshness
+      setCache(cacheKey, unique, 60_000); // 1 min cache
       return unique;
     } catch {
       return [];
@@ -298,13 +302,13 @@ export class MarketDataService {
    * DexScreener doesn't have a direct "trending" endpoint, so we search for high-volume pairs
    */
   async getDexTrending(): Promise<DexPair[]> {
-    const cacheKey = "dex_trending";
+    const cacheKey = "dex_trending_monad";
     const cached = getCached<DexPair[]>(cacheKey);
     if (cached) return cached;
 
     try {
-      // Search for high-activity pairs across chains
-      const queries = ["WETH", "SOL", "MON", "USDC", "PEPE"];
+      // Search for Monad ecosystem tokens specifically
+      const queries = ["CHOG", "YAKI", "DAK", "MOYAKI", "sMON"];
       const allPairs: DexPair[] = [];
 
       for (const q of queries) {
@@ -314,42 +318,45 @@ export class MarketDataService {
           });
           if (!res.ok) continue;
           const data = await res.json();
-          const pairs = (data.pairs || []).slice(0, 5).map((p: Record<string, unknown>) => {
-            const base = (p.baseToken as Record<string, string>) || {};
-            const quote = (p.quoteToken as Record<string, string>) || {};
-            return {
-              chainId: (p.chainId as string) || "",
-              dexId: (p.dexId as string) || "",
-              pairAddress: (p.pairAddress as string) || "",
-              baseToken: { address: base.address || "", name: base.name || "", symbol: base.symbol || "" },
-              quoteToken: { address: quote.address || "", name: quote.name || "", symbol: quote.symbol || "" },
-              priceUsd: (p.priceUsd as string) || "0",
-              priceChange24h: ((p.priceChange as Record<string, number>)?.h24) ?? 0,
-              volume24h: ((p.volume as Record<string, number>)?.h24) ?? 0,
-              liquidity: ((p.liquidity as Record<string, number>)?.usd) ?? 0,
-              fdv: (p.fdv as number) ?? null,
-              pairCreatedAt: (p.pairCreatedAt as number) ?? null,
-              url: (p.url as string) || "",
-              source: "dexscreener" as const,
-            };
-          });
+          const pairs = (data.pairs || [])
+            .filter((p: Record<string, unknown>) => (p.chainId as string) === "monad")
+            .slice(0, 3)
+            .map((p: Record<string, unknown>) => {
+              const base = (p.baseToken as Record<string, string>) || {};
+              const quote = (p.quoteToken as Record<string, string>) || {};
+              return {
+                chainId: "monad",
+                dexId: (p.dexId as string) || "",
+                pairAddress: (p.pairAddress as string) || "",
+                baseToken: { address: base.address || "", name: base.name || "", symbol: base.symbol || "" },
+                quoteToken: { address: quote.address || "", name: quote.name || "", symbol: quote.symbol || "" },
+                priceUsd: (p.priceUsd as string) || "0",
+                priceChange24h: ((p.priceChange as Record<string, number>)?.h24) ?? 0,
+                volume24h: ((p.volume as Record<string, number>)?.h24) ?? 0,
+                liquidity: ((p.liquidity as Record<string, number>)?.usd) ?? 0,
+                fdv: (p.fdv as number) ?? null,
+                pairCreatedAt: (p.pairCreatedAt as number) ?? null,
+                url: (p.url as string) || "",
+                source: "dexscreener" as const,
+              };
+            });
           allPairs.push(...pairs);
         } catch { /* skip individual query */ }
       }
 
-      // Sort by volume and deduplicate by base token symbol
+      // Sort by volume and deduplicate
       const seen = new Set<string>();
       const unique = allPairs
         .sort((a, b) => b.volume24h - a.volume24h)
         .filter((p) => {
-          const key = `${p.baseToken.symbol}-${p.chainId}`;
+          const key = `${p.baseToken.symbol}-${p.dexId}`.toLowerCase();
           if (seen.has(key)) return false;
           seen.add(key);
           return true;
         })
         .slice(0, 15);
 
-      setCache(cacheKey, unique, 90_000); // 1.5 min cache
+      setCache(cacheKey, unique, 90_000);
       return unique;
     } catch {
       return [];
