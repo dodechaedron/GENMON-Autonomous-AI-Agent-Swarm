@@ -72,6 +72,10 @@ export async function GET(req: NextRequest) {
         const data = await marketData.getDexTrending().catch(() => []);
         return NextResponse.json({ data, source: "server", timestamp: Date.now() });
       }
+      case "nadfun": {
+        const data = await marketData.getNadFunTrending().catch(() => []);
+        return NextResponse.json({ data, source: "server", timestamp: Date.now() });
+      }
       case "pairs": {
         const chainId = req.nextUrl.searchParams.get("chainId") || "monad";
         const data = await marketData.getNewDexPairs(chainId).catch(() => []);

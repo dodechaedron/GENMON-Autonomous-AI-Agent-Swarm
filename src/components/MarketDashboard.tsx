@@ -195,11 +195,12 @@ function TrendingTab({ items, loading }: { items: TrendingItem[]; loading: boole
               </span>
             )}
             <span className={`ml-auto px-1 py-0.5 rounded text-[9px] ${
+              item.keywords.includes("nad-fun") ? "bg-purple-500/10 text-purple-400" :
               item.source === "coingecko" ? "bg-yellow-500/10 text-yellow-400" :
               item.source === "dexscreener" ? "bg-green-500/10 text-green-400" :
               "bg-blue-500/10 text-blue-400"
             }`}>
-              {item.source === "coingecko" ? "CG" : item.source === "dexscreener" ? "DEX" : "MIX"}
+              {item.keywords.includes("nad-fun") ? "NAD" : item.source === "coingecko" ? "CG" : item.source === "dexscreener" ? "DEX" : "MIX"}
             </span>
           </div>
           {item.keywords.length > 0 && (

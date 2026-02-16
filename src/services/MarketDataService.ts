@@ -227,6 +227,73 @@ export class MarketDataService {
   }
 
   /**
+   * Get trending tokens on Nad.fun (Monad) via DexScreener
+   * Searches for Monad pairs on nad-fun DEX, sorted by volume
+   */
+  async getNadFunTrending(): Promise<DexPair[]> {
+    const cacheKey = "nadfun_trending";
+    const cached = getCached<DexPair[]>(cacheKey);
+    if (cached) return cached;
+
+    try {
+      // Search multiple terms to find Monad/nad-fun pairs
+      const queries = ["MON WMON monad", "nad fun monad"];
+      const allPairs: DexPair[] = [];
+
+      for (const q of queries) {
+        try {
+          const res = await fetch(`${DEX_BASE}/latest/dex/search?q=${encodeURIComponent(q)}`, {
+            signal: AbortSignal.timeout(6000),
+          });
+          if (!res.ok) continue;
+          const data = await res.json();
+          const pairs = (data.pairs || [])
+            .filter((p: Record<string, unknown>) => 
+              (p.chainId as string) === "monad" && (p.dexId as string) === "nad-fun"
+            )
+            .map((p: Record<string, unknown>) => {
+              const base = (p.baseToken as Record<string, string>) || {};
+              const quote = (p.quoteToken as Record<string, string>) || {};
+              return {
+                chainId: "monad",
+                dexId: "nad-fun",
+                pairAddress: (p.pairAddress as string) || "",
+                baseToken: { address: base.address || "", name: base.name || "", symbol: base.symbol || "" },
+                quoteToken: { address: quote.address || "", name: quote.name || "", symbol: quote.symbol || "" },
+                priceUsd: (p.priceUsd as string) || "0",
+                priceChange24h: ((p.priceChange as Record<string, number>)?.h24) ?? 0,
+                volume24h: ((p.volume as Record<string, number>)?.h24) ?? 0,
+                liquidity: ((p.liquidity as Record<string, number>)?.usd) ?? 0,
+                fdv: (p.fdv as number) ?? null,
+                pairCreatedAt: (p.pairCreatedAt as number) ?? null,
+                url: (p.url as string) || "",
+                source: "dexscreener" as const,
+              };
+            });
+          allPairs.push(...pairs);
+        } catch { /* skip */ }
+      }
+
+      // Deduplicate by base token symbol and sort by volume
+      const seen = new Set<string>();
+      const unique = allPairs
+        .sort((a, b) => b.volume24h - a.volume24h)
+        .filter((p) => {
+          const key = p.baseToken.symbol.toLowerCase();
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return p.volume24h > 0; // only pairs with volume
+        })
+        .slice(0, 15);
+
+      setCache(cacheKey, unique, 60_000); // 1 min cache for freshness
+      return unique;
+    } catch {
+      return [];
+    }
+  }
+
+  /**
    * Get top trending pairs from DexScreener by searching popular terms
    * DexScreener doesn't have a direct "trending" endpoint, so we search for high-volume pairs
    */
@@ -525,7 +592,8 @@ export class MarketDataService {
    * CoinGecko trending + DexScreener boosted + CryptoCompare news + CoinGecko categories + new DEX pairs
    */
   async getMarketSentiment(count: number = 5): Promise<MarketSentiment[]> {
-    const [trending, boosted, gainers, news, categories, newPairs, dexTrending, onChainSentiment] = await Promise.all([
+    const [nadFunTokens, trending, boosted, gainers, news, categories, newPairs, dexTrending, onChainSentiment] = await Promise.all([
+      this.getNadFunTrending().catch(() => []),
       this.getTrendingCoins().catch(() => []),
       this.getBoostedTokens().catch(() => []),
       this.getTopGainers(15).catch(() => []),
@@ -539,10 +607,30 @@ export class MarketDataService {
     const sentiments: MarketSentiment[] = [];
     const seenTopics = new Set<string>();
 
-    // Distribute slots across sources for variety
-    const trendingSlots = Math.max(2, Math.ceil(count * 0.25));
-    const gainerSlots = Math.max(2, Math.ceil(count * 0.2));
-    const dexSlots = Math.max(2, Math.ceil(count * 0.2));
+    // Distribute slots — Nad.fun gets priority
+    const nadFunSlots = Math.max(3, Math.ceil(count * 0.3));
+    const trendingSlots = Math.max(2, Math.ceil(count * 0.2));
+    const gainerSlots = Math.max(1, Math.ceil(count * 0.15));
+    const dexSlots = Math.max(1, Math.ceil(count * 0.1));
+
+    // 0. From Nad.fun trending (PRIORITY — Monad native)
+    for (const pair of nadFunTokens.slice(0, nadFunSlots)) {
+      const sym = pair.baseToken.symbol.toLowerCase();
+      if (!sym || sym === "mon" || sym === "wmon" || seenTopics.has(sym)) continue;
+      seenTopics.add(sym);
+      const volScore = pair.volume24h > 100_000 ? 35 : pair.volume24h > 10_000 ? 25 : pair.volume24h > 1_000 ? 15 : 5;
+      const changeScore = Math.min(25, Math.max(-15, pair.priceChange24h / 2));
+      const score = Math.max(15, Math.min(100, 40 + volScore + changeScore));
+      sentiments.push({
+        topic: `${pair.baseToken.name || pair.baseToken.symbol} (${pair.baseToken.symbol})`,
+        score: Math.round(score),
+        volume: Math.round(pair.volume24h),
+        trending: pair.volume24h > 5_000,
+        keywords: [sym, "nad-fun", "monad", "bonding-curve"],
+        source: "dexscreener",
+        data: { dexPairs: [pair], priceChange: pair.priceChange24h },
+      });
+    }
 
     // 1. From CoinGecko trending
     for (const coin of trending.slice(0, trendingSlots)) {
