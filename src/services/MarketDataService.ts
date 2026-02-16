@@ -608,9 +608,9 @@ export class MarketDataService {
     const seenTopics = new Set<string>();
 
     // Distribute slots — Nad.fun gets priority
-    const nadFunSlots = Math.max(3, Math.ceil(count * 0.3));
+    const nadFunSlots = Math.max(4, Math.ceil(count * 0.35));
     const trendingSlots = Math.max(2, Math.ceil(count * 0.2));
-    const gainerSlots = Math.max(1, Math.ceil(count * 0.15));
+    const gainerSlots = Math.max(1, Math.ceil(count * 0.1));
     const dexSlots = Math.max(1, Math.ceil(count * 0.1));
 
     // 0. From Nad.fun trending (PRIORITY — Monad native)
@@ -620,12 +620,14 @@ export class MarketDataService {
       seenTopics.add(sym);
       const volScore = pair.volume24h > 100_000 ? 35 : pair.volume24h > 10_000 ? 25 : pair.volume24h > 1_000 ? 15 : 5;
       const changeScore = Math.min(25, Math.max(-15, pair.priceChange24h / 2));
-      const score = Math.max(15, Math.min(100, 40 + volScore + changeScore));
+      // Nad.fun tokens get a base boost since they're native to our platform
+      const nadBoost = 15;
+      const score = Math.max(20, Math.min(100, 45 + volScore + changeScore + nadBoost));
       sentiments.push({
         topic: `${pair.baseToken.name || pair.baseToken.symbol} (${pair.baseToken.symbol})`,
         score: Math.round(score),
         volume: Math.round(pair.volume24h),
-        trending: pair.volume24h > 5_000,
+        trending: pair.volume24h > 1_000,
         keywords: [sym, "nad-fun", "monad", "bonding-curve"],
         source: "dexscreener",
         data: { dexPairs: [pair], priceChange: pair.priceChange24h },
