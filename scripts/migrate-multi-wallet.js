@@ -2,10 +2,11 @@
  * Migration: Add owner_wallet column for multi-wallet support
  * Run: node scripts/migrate-multi-wallet.js
  */
+require("dotenv").config();
 const { Client } = require("pg");
 
 const connectionString =
-  "postgresql://postgres.jrdbyqhquvdxwwdrrlil:OgaDwintara094@aws-1-ap-southeast-2.pooler.supabase.com:5432/postgres";
+  process.env.DATABASE_URL || "postgresql://postgres:password@localhost:5432/postgres";
 
 const SQL = `
 -- Add owner_wallet to agents

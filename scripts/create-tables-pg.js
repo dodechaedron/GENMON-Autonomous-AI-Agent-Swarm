@@ -2,10 +2,11 @@
  * Create GENMON tables directly via PostgreSQL connection
  * Run: node scripts/create-tables-pg.js
  */
+require("dotenv").config();
 const { Client } = require("pg");
 
 const connectionString =
-  "postgresql://postgres.jrdbyqhquvdxwwdrrlil:OgaDwintara094@aws-1-ap-southeast-2.pooler.supabase.com:5432/postgres";
+  process.env.DATABASE_URL || "postgresql://postgres:password@localhost:5432/postgres";
 
 const SQL = `
 -- Agents table
